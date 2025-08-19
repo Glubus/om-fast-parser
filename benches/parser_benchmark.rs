@@ -6,6 +6,10 @@ use std::path::Path;
 fn benchmark_parse_file(c: &mut Criterion) {
     let mut group = c.benchmark_group("parser");
     
+    group.sample_size(100);
+    group.measurement_time(std::time::Duration::from_secs(10));
+    group.warm_up_time(std::time::Duration::from_secs(5));
+    
     group.bench_function("parse_smk_osu", |b| {
         b.iter(|| {
             let mut parser = OsuParser::new();
