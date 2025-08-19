@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::time::Instant;
 
-use super_fast_parser::OsuParser;
+use om_fast_parser::OsuParser;
 
 fn main() {
     let mut parser = OsuParser::new();

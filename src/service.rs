@@ -20,79 +20,69 @@ impl OsuParser {
         let mut in_hit_objects = false;
         let mut mode_found = false;
 
-        // Pré-allouer la capacité pour éviter les reallocations
         self.hit_objects.reserve(50000);
 
         for line in content.lines() {
-            // Skip les lignes vides et commentaires rapidement
-            if line.is_empty() || line.as_bytes().get(0) == Some(&b'/') {
-                continue;
+            let bytes = line.as_bytes();
+            if bytes.is_empty() || bytes[0] == b'/' { continue; }
+
+            match bytes {
+                b"[General]" => { in_hit_objects = false; continue; }
+                b"[HitObjects]" => { in_hit_objects = true; continue; }
+                _ => {}
             }
 
-            // Check sections avec des comparaisons directes
-            if line == "[General]" {
-                in_hit_objects = false;
-                continue;
-            }
-
-            if line == "[HitObjects]" {
-                in_hit_objects = true;
-                continue;
-            }
-
-            if !mode_found && line.starts_with("Mode:") {
-                // Parse mode rapidement
-                let mode_part = &line[5..];
-                self.mode = mode_part.trim().parse().unwrap_or(0);
+            if !mode_found && bytes.starts_with(b"Mode:") {
+                self.mode = crate::helpers::parse_int_fast(&bytes[5..]) as u8;
                 mode_found = true;
                 continue;
             }
 
             if in_hit_objects {
-                self.hit_objects.push(parse_hit_object_line(line, self.mode)?);
+                let hit_object = parse_hit_object_line(bytes, self.mode);
+                self.hit_objects.push(hit_object);
             }
         }
 
         Ok(())
     }
 
-    // Méthodes utilitaires
     pub fn get_circles(&self) -> Vec<&HitObject> {
-        self.hit_objects.iter()
-            .filter(|obj| matches!(obj.object_type, HitObjectType::Circle))
-            .collect()
+        self.hit_objects.iter().filter(|obj| matches!(obj.object_type, HitObjectType::Circle)).collect()
     }
 
     pub fn get_holds(&self) -> Vec<&HitObject> {
-        self.hit_objects.iter()
-            .filter(|obj| matches!(obj.object_type, HitObjectType::Hold))
-            .collect()
+        self.hit_objects.iter().filter(|obj| matches!(obj.object_type, HitObjectType::Hold)).collect()
     }
 
     pub fn get_objects_in_time_range(&self, start_time: i32, end_time: i32) -> Vec<&HitObject> {
-        self.hit_objects.iter()
-            .filter(|obj| obj.time >= start_time && obj.time <= end_time)
-            .collect()
+        self.hit_objects.iter().filter(|obj| obj.time >= start_time && obj.time <= end_time).collect()
     }
 
     pub fn count_objects_by_type(&self) -> (usize, usize) {
-        let mut circles = 0;
-        let mut holds = 0;
-        
-        for obj in &self.hit_objects {
-            match obj.object_type {
-                HitObjectType::Circle => circles += 1,
-                HitObjectType::Hold => holds += 1,
-            }
-        }
-        
-        (circles, holds)
+        self.hit_objects.iter().fold((0, 0), |(c, h), obj| match obj.object_type { HitObjectType::Circle => (c + 1, h), HitObjectType::Hold => (c, h + 1) })
     }
 
     pub fn get_hold_examples(&self, limit: usize) -> Vec<&HitObject> {
-        self.hit_objects.iter()
-            .filter(|obj| matches!(obj.object_type, HitObjectType::Hold))
-            .take(limit)
-            .collect()
+        self.hit_objects.iter().filter(|obj| matches!(obj.object_type, HitObjectType::Hold)).take(limit).collect()
+    }
+
+    pub fn get_objects_by_time_sorted(&self) -> Vec<&HitObject> {
+        let mut objects: Vec<&HitObject> = self.hit_objects.iter().collect();
+        objects.sort_by_key(|obj| obj.time);
+        objects
+    }
+
+    pub fn get_density_analysis(&self, time_window: i32) -> Vec<(i32, usize)> {
+        let mut density_map = std::collections::HashMap::new();
+        for obj in &self.hit_objects {
+            let window_start = obj.time / time_window * time_window;
+            *density_map.entry(window_start).or_insert(0) += 1;
+        }
+        let mut result: Vec<_> = density_map.into_iter().collect();
+        result.sort_by_key(|(time, _)| *time);
+        result
     }
 }
+
+ 

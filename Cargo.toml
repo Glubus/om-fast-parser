@@ -1,24 +1,29 @@
 [package]
-name = "super_fast_parser"
+name = "om_fast_parser_bin"
 version = "0.1.0"
 edition = "2024"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
-name = "super_fast_parser"
-
+name = "om_fast_parser"
 
 [dependencies]
+
+[dev-dependencies]
+minacalc-rs = "0.1"
+criterion = { version = "0.7", features = ["html_reports"] }
+
+[[bench]]
+name = "parser_benchmark"
+harness = false
 
 [profile.release]
 opt-level = 3
 lto = "fat"
 codegen-units = 1
 overflow-checks = false
-panic = "abort"
 debug = false
 strip = "symbols"
 
 [profile.release.build-override]
 opt-level = 3
-codegen-units = 1
