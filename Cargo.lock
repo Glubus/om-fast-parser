@@ -329,7 +329,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "om_fast_parser_bin"
+name = "om_fast_parser"
 version = "0.1.0"
 dependencies = [
  "criterion",
